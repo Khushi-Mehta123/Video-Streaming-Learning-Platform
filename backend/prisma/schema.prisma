@@ -1,0 +1,70 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  videos    Video[]
+  liveRooms LiveRoom[]
+  purchases Purchase[]
+}
+
+model Video {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  s3Key       String   @unique
+  status      String   @default("PROCESSING") // PROCESSING, READY, FAILED
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id])
+  isPremium   Boolean  @default(false)
+  price       Float    @default(0.0)
+  purchases   Purchase[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LiveRoom {
+  id           String    @id @default(uuid())
+  roomName     String    @unique
+  title        String
+  instructorId String
+  instructor   User      @relation(fields: [instructorId], references: [id])
+  isActive     Boolean   @default(true)
+  scheduledAt  DateTime?
+  endsAt       DateTime?
+  status       String    @default("LIVE") // SCHEDULED, LIVE, COMPLETED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Purchase {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id])
+  orderId   String   @unique
+  paymentId String?
+  signature String?
+  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
